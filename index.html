@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carbrain FC Sky Blues</title>
+  
+  <!-- Embedded Web App Manifest for PWABuilder -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Carbrain FC Sky Blues","short_name":"Sky Blues","start_url":"/sky-blues-tracker/index.html","display":"standalone","background_color":"#1a080c","theme_color":"#5bc0be","icons":[{"src":"https://raw.githubusercontent.com/purdie1979-png/sky-blues-tracker/main/icon.png","sizes":"512x512","type":"image/png"}]}'>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -41,7 +45,6 @@
     .checkbox { width: 22px; height: 22px; cursor: pointer; }
     .badge { background: #5bc0be; color: black; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 12px; }
     
-    /* Pitch / Tactics Board */
     .pitch {
       background: #1e5128;
       border: 2px solid white;
@@ -70,7 +73,6 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
 
-    /* Admin Banner */
     .admin-bar { background: #2a1219; padding: 8px; border-radius: 5px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
   </style>
 </head>
@@ -204,7 +206,6 @@
       event.target.classList.add('active');
     };
 
-    // Live Squad Listener
     onSnapshot(collection(db, "players"), (snapshot) => {
       const squadList = document.getElementById("squadList");
       const attPlayerList = document.getElementById("attPlayerList");
@@ -225,7 +226,6 @@
         const p = docSnap.data();
         players.push({ id: docSnap.id, ...p });
 
-        // Squad Profile List
         const li = document.createElement("li");
         li.innerHTML = `<div>
                           <strong>#${p.number || ''} ${p.name}</strong><br>
@@ -234,7 +234,6 @@
                         <button class="del-btn" style="display:${isAdmin ? 'inline-block':'none'};" onclick="deletePlayer('${docSnap.id}')">✕</button>`;
         squadList.appendChild(li);
 
-        // Attendance List
         const attLi = document.createElement("li");
         attLi.innerHTML = `<div class="att-row">
                              <span><strong>#${p.number || ''}</strong> ${p.name}</span>
@@ -242,13 +241,11 @@
                            </div>`;
         attPlayerList.appendChild(attLi);
 
-        // Scorer select dropdown
         const option = document.createElement("option");
         option.value = docSnap.id;
         option.textContent = p.name;
         scorerSelect.appendChild(option);
 
-        // Tactics Pitch Player Token
         const pToken = document.createElement("div");
         pToken.className = "pitch-player";
         pToken.textContent = p.number || p.name.substring(0,3);
@@ -259,7 +256,6 @@
         i++;
       });
 
-      // Leaderboard
       players.sort((a, b) => (b.goals || 0) - (a.goals || 0));
       players.forEach(p => {
         if (p.goals && p.goals > 0) {
@@ -272,7 +268,6 @@
       updateAdminUI();
     });
 
-    // Add Player
     document.getElementById("addPlayerBtn").addEventListener("click", async () => {
       const name = document.getElementById("playerName").value.trim();
       const number = document.getElementById("playerNum").value;
@@ -282,13 +277,11 @@
       document.getElementById("playerNum").value = "";
     });
 
-    // Delete Player
     window.deletePlayer = async (id) => {
       if (!isAdmin) return;
       await deleteDoc(doc(db, "players", id));
     };
 
-    // Save Attendance
     document.getElementById("saveAttBtn").addEventListener("click", async () => {
       const date = document.getElementById("attDate").value;
       if (!date) return alert("Select date");
@@ -302,7 +295,6 @@
       alert("Attendance saved!");
     });
 
-    // Log Match
     document.getElementById("addMatchBtn").addEventListener("click", async () => {
       const opponent = document.getElementById("opponent").value.trim();
       const ourScore = document.getElementById("ourScore").value;
@@ -323,7 +315,6 @@
       alert("Match logged!");
     });
 
-    // Add Fixture
     document.getElementById("addFixtureBtn").addEventListener("click", async () => {
       const opponent = document.getElementById("fixOpponent").value.trim();
       const venue = document.getElementById("fixVenue").value.trim();
@@ -338,7 +329,6 @@
       alert("Fixture added!");
     });
 
-    // Live Matches Listener
     onSnapshot(collection(db, "matches"), (snapshot) => {
       const matchList = document.getElementById("matchList");
       matchList.innerHTML = "";
@@ -352,7 +342,6 @@
       if (snapshot.empty) matchList.innerHTML = "<p>No matches logged yet.</p>";
     });
 
-    // Live Fixtures Listener
     onSnapshot(collection(db, "fixtures"), (snapshot) => {
       const fixtureList = document.getElementById("fixtureList");
       fixtureList.innerHTML = "";
