@@ -26,10 +26,9 @@
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
     .badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
-    /* Attendance status badges */
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .status-here { background: #2e7d32; color: #fff; }
-    .status-missing { background: #c62828; color: #fff; }
+    .status-present { background: #2e7d32; color: #fff; }
+    .status-absent { background: #c62828; color: #fff; }
     .status-excused { background: #f57c00; color: #fff; }
 
     .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
@@ -71,14 +70,21 @@
   <!-- ATTENDANCE TAB -->
   <div id="attendance-tab" class="tab-content">
     <div class="card">
-      <h2>Training Attendance</h2>
+      <h2>Attendance Tracker</h2>
       <div id="attendance-form" class="form-group" style="display:none;">
+        <div class="row">
+          <input type="date" id="att-date" style="width: 50%;">
+          <select id="att-type" style="width: 50%;">
+            <option value="Training">Training</option>
+            <option value="Match Day">Match Day</option>
+          </select>
+        </div>
         <select id="att-player">
           <option value="">Select Player</option>
         </select>
         <select id="att-status">
-          <option value="Here">Here</option>
-          <option value="Missing">Missing</option>
+          <option value="Present">Present</option>
+          <option value="Absent">Absent</option>
           <option value="Excused">Excused</option>
         </select>
         <button class="action-btn" onclick="recordAttendance()">Log Attendance</button>
@@ -182,12 +188,12 @@
     }
 
     function formatDate(dStr) {
-      if (!dStr) return '';
+      if (!dStr) return 'No Date';
       const d = new Date(dStr + 'T00:00:00');
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    // FIREBASE READS & AUTO-POPULATION
+    // FIREBASE LISTENERS
     db.ref('players').on('value', snapshot => {
       const squadList = document.getElementById('squad-list');
       const attSelect = document.getElementById('att-player');
@@ -199,18 +205,18 @@
       
       snapshot.forEach(child => {
         const p = child.val();
-        const numLabel = p.number ? `#${p.number} ` : '';
+        const numLabel = p.number ? `#${p.number}` : 'N/A';
         
         squadList.innerHTML += `
           <div class="list-item">
             <div>
-              ${p.number ? `<span class="badge" style="margin-right:8px;">#${p.number}</span>` : ''}
+              <span class="badge" style="margin-right:8px;">${numLabel}</span>
               <strong>${p.name}</strong>
             </div>
           </div>`;
           
-        attSelect.innerHTML += `<option value="${p.name}">${numLabel}${p.name}</option>`;
-        scorerSelect.innerHTML += `<option value="${p.name}">${numLabel}${p.name}</option>`;
+        attSelect.innerHTML += `<option value="${p.name}">${p.number ? '#' + p.number + ' ' : ''}${p.name}</option>`;
+        scorerSelect.innerHTML += `<option value="${p.name}">${p.number ? '#' + p.number + ' ' : ''}${p.name}</option>`;
       });
     });
 
@@ -219,13 +225,16 @@
       container.innerHTML = '';
       snapshot.forEach(child => {
         const data = child.val();
-        let classType = 'status-here';
-        if (data.status === 'Missing') classType = 'status-missing';
+        let classType = 'status-present';
+        if (data.status === 'Absent') classType = 'status-absent';
         if (data.status === 'Excused') classType = 'status-excused';
 
         container.innerHTML += `
           <div class="list-item">
-            <strong>${data.player}</strong>
+            <div>
+              <span class="date-tag">${formatDate(data.date)} (${data.type || 'Session'})</span>
+              <strong>${data.player}</strong>
+            </div>
             <span class="status-badge ${classType}">${data.status}</span>
           </div>`;
       });
@@ -237,13 +246,10 @@
       
       matchesContainer.innerHTML = '';
       scorersContainer.innerHTML = '';
-      
       const scorerTotals = {};
 
       snapshot.forEach(child => {
         const data = child.val();
-        
-        // Log match output
         const scorerText = data.scorer ? ` (${data.scorer} x${data.goals || 1})` : '';
         matchesContainer.innerHTML += `
           <div class="list-item">
@@ -254,14 +260,12 @@
             <span class="badge">${data.us} - ${data.them}</span>
           </div>`;
 
-        // Calculate auto-populated top scorers table
         if (data.scorer) {
           const goalCount = parseInt(data.goals) || 1;
           scorerTotals[data.scorer] = (scorerTotals[data.scorer] || 0) + goalCount;
         }
       });
 
-      // Render top scorers list ordered by total goals
       const sortedScorers = Object.entries(scorerTotals).sort((a, b) => b[1] - a[1]);
       if (sortedScorers.length === 0) {
         scorersContainer.innerHTML = '<p style="text-align:center; color:#888;">No goals recorded yet</p>';
@@ -291,7 +295,7 @@
       });
     });
 
-    // FIREBASE WRITES
+    // ACTION FUNCTIONS
     function addPlayer() {
       const name = document.getElementById('p-name').value;
       const number = document.getElementById('p-num').value;
@@ -305,9 +309,12 @@
     function recordAttendance() {
       const player = document.getElementById('att-player').value;
       const status = document.getElementById('att-status').value;
+      const date = document.getElementById('att-date').value;
+      const type = document.getElementById('att-type').value;
       if (!player) return;
 
-      db.ref('attendance').push({ player, status });
+      db.ref('attendance').push({ player, status, date, type });
+      document.getElementById('att-player').value = '';
     }
 
     function logMatch() {
