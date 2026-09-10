@@ -6,150 +6,176 @@
   <title>Carbrain FC Sky Blues</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; background-color: #1a080c; color: white; text-align: center; }
-    h1 { color: #5bc0be; margin-bottom: 5px; }
-    .sub-head { color: #888; font-size: 14px; margin-bottom: 15px; }
-    .nav { display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; flex-wrap: wrap; }
-    .nav button { background: none; border: none; color: #888; font-size: 13px; cursor: pointer; padding: 8px 5px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 15px; background-color: #1a080c; color: white; text-align: center; }
+    h1 { color: #5bc0be; margin-bottom: 2px; font-size: 24px; text-transform: uppercase; }
+    .status-bar { font-size: 11px; color: #888; margin-bottom: 15px; }
+    .status-bar span { color: #5bc0be; }
+    
+    .admin-panel { background: #2a1219; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .pin-btn { background: #5bc0be; color: #1a080c; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    
+    .card { background: #2a1219; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left; }
+    .card h2 { margin-top: 0; font-size: 18px; text-align: center; color: #fff; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .row { display: flex; gap: 8px; }
+    input, select { padding: 10px; border-radius: 5px; border: 1px solid #333; background: #1a080c; color: white; font-size: 14px; width: 100%; box-sizing: border-box; }
+    .action-btn { width: 100%; background: #5bc0be; color: #1a080c; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 5px; }
+    
+    .list-item { background: #1a080c; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
+    .score-badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
+    
+    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
+    .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 0; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
-    .form-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-    .row { display: flex; gap: 10px; }
-    input, select { padding: 10px; font-size: 15px; border-radius: 5px; border: 1px solid #333; background: #2a1219; color: white; width: 100%; box-sizing: border-box; }
-    .btn { padding: 10px 15px; background-color: #5bc0be; color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    ul { list-style: none; padding: 0; }
-    li { background: #2a1219; margin: 8px 0; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
-    .del-btn { background: #ff4d4d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-    .tab-content { display: none; }
+    .tab-content { display: none; padding-bottom: 60px; }
     .tab-content.active { display: block; }
-    .date-badge { color: #5bc0be; font-size: 12px; display: block; font-weight: bold; }
   </style>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-  <h1>CARBRAIN FC SKY BLUES</h1>
-  <div class="sub-head">Match & Fixture Tracker</div>
+  <h1>Carbrain FC Sky Blues</h1>
+  <div class="status-bar"><span>Synced</span> · Everyone sees this data</div>
 
-  <div class="nav">
-    <button class="active" onclick="showTab('fixtures')">Fixtures</button>
-    <button onclick="showTab('results')">Results</button>
+  <div class="admin-panel">
+    <span id="mode-text">Mode: Spectator (Read Only)</span>
+    <button class="pin-btn" onclick="toggleAdmin()">Admin PIN</button>
+  </div>
+
+  <!-- MATCHES / RESULTS TAB -->
+  <div id="matches-tab" class="tab-content active">
+    <div class="card">
+      <h2>Matches & Results</h2>
+      <div id="match-form" class="form-group" style="display:none;">
+        <input type="text" id="m-opponent" placeholder="Opponent Team">
+        <div class="row">
+          <input type="number" id="m-us" placeholder="Us">
+          <input type="number" id="m-them" placeholder="Them">
+        </div>
+        <input type="date" id="m-date">
+        <button class="action-btn" onclick="logMatch()">Log Match Result</button>
+      </div>
+      <div id="matches-list"></div>
+    </div>
   </div>
 
   <!-- FIXTURES TAB -->
-  <div id="fixtures" class="tab-content active">
-    <h3>Upcoming Fixtures</h3>
-    <div class="form-box">
-      <input type="text" id="fix-opponent" placeholder="Opponent Name">
-      <input type="date" id="fix-date">
-      <button class="btn" onclick="addFixture()">Add Fixture</button>
+  <div id="fixtures-tab" class="tab-content">
+    <div class="card">
+      <h2>Upcoming Fixtures</h2>
+      <div id="fixture-form" class="form-group" style="display:none;">
+        <input type="text" id="f-opponent" placeholder="Opponent Team">
+        <input type="date" id="f-date">
+        <button class="action-btn" onclick="addFixture()">Add Fixture</button>
+      </div>
+      <div id="fixtures-list"></div>
     </div>
-    <ul id="fixtures-list"></ul>
   </div>
 
-  <!-- RESULTS TAB -->
-  <div id="results" class="tab-content">
-    <h3>Match Results</h3>
-    <div class="form-box">
-      <input type="text" id="res-opponent" placeholder="Opponent Name">
-      <div class="row">
-        <input type="number" id="res-gf" placeholder="Goals For">
-        <input type="number" id="res-ga" placeholder="Goals Against">
-      </div>
-      <input type="date" id="res-date">
-      <button class="btn" onclick="addResult()">Add Result</button>
-    </div>
-    <ul id="results-list"></ul>
+  <!-- NAV BAR -->
+  <div class="nav">
+    <button class="active" onclick="switchTab('matches-tab', this)">Matches</button>
+    <button onclick="switchTab('fixtures-tab', this)">Fixtures</button>
   </div>
 
   <script>
-    let fixtures = JSON.parse(localStorage.getItem('sky_fixtures')) || [];
-    let results = JSON.parse(localStorage.getItem('sky_results')) || [];
+    // Config Firebase Realtime DB
+    const firebaseConfig = {
+      databaseURL: "https://sky-blues-tracker-default-rtdb.firebaseio.com" 
+    };
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.database();
 
-    function showTab(tabId) {
+    let isAdmin = false;
+
+    function toggleAdmin() {
+      if (!isAdmin) {
+        const pin = prompt("Enter Admin PIN:");
+        if (pin === "1234") { // Replace with your admin pin
+          isAdmin = true;
+          document.getElementById('mode-text').innerText = "Mode: Coach (Admin)";
+          document.getElementById('match-form').style.display = "flex";
+          document.getElementById('fixture-form').style.display = "flex";
+        } else {
+          alert("Incorrect PIN");
+        }
+      }
+    }
+
+    function switchTab(tabId, btn) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav button').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      event.target.classList.add('active');
+      btn.classList.add('active');
     }
 
-    function formatDate(dateStr) {
-      if (!dateStr) return 'Date TBD';
-      const date = new Date(dateStr + 'T00:00:00');
-      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    function formatDate(dStr) {
+      if (!dStr) return '';
+      const d = new Date(dStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    function renderFixtures() {
-      const list = document.getElementById('fixtures-list');
-      list.innerHTML = '';
-      fixtures.forEach((item, index) => {
-        list.innerHTML += `
-          <li>
+    // FIREBASE READS
+    db.ref('matches').on('value', snapshot => {
+      const container = document.getElementById('matches-list');
+      container.innerHTML = '';
+      snapshot.forEach(child => {
+        const data = child.val();
+        container.innerHTML += `
+          <div class="list-item">
             <div>
-              <span class="date-badge">${formatDate(item.date)}</span>
-              <strong>vs ${item.opponent}</strong>
+              <span class="date-tag">${formatDate(data.date)}</span>
+              <strong>vs ${data.opponent}</strong>
             </div>
-            <button class="del-btn" onclick="deleteFixture(${index})">X</button>
-          </li>
-        `;
+            <span class="score-badge">${data.us} - ${data.them}</span>
+          </div>`;
       });
-    }
+    });
 
-    function renderResults() {
-      const list = document.getElementById('results-list');
-      list.innerHTML = '';
-      results.forEach((item, index) => {
-        list.innerHTML += `
-          <li>
+    db.ref('fixtures').on('value', snapshot => {
+      const container = document.getElementById('fixtures-list');
+      container.innerHTML = '';
+      snapshot.forEach(child => {
+        const data = child.val();
+        container.innerHTML += `
+          <div class="list-item">
             <div>
-              <span class="date-badge">${formatDate(item.date)}</span>
-              <strong>vs ${item.opponent}</strong> (${item.gf} - ${item.ga})
+              <span class="date-tag">${formatDate(data.date)}</span>
+              <strong>vs ${data.opponent}</strong>
             </div>
-            <button class="del-btn" onclick="deleteResult(${index})">X</button>
-          </li>
-        `;
+          </div>`;
       });
+    });
+
+    // FIREBASE WRITES
+    function logMatch() {
+      const opponent = document.getElementById('m-opponent').value;
+      const us = document.getElementById('m-us').value || 0;
+      const them = document.getElementById('m-them').value || 0;
+      const date = document.getElementById('m-date').value;
+      if (!opponent) return;
+
+      db.ref('matches').push({ opponent, us, them, date });
+      document.getElementById('m-opponent').value = '';
+      document.getElementById('m-us').value = '';
+      document.getElementById('m-them').value = '';
+      document.getElementById('m-date').value = '';
     }
 
     function addFixture() {
-      const opponent = document.getElementById('fix-opponent').value;
-      const date = document.getElementById('fix-date').value;
+      const opponent = document.getElementById('f-opponent').value;
+      const date = document.getElementById('f-date').value;
       if (!opponent) return;
-      fixtures.push({ opponent, date });
-      localStorage.setItem('sky_fixtures', JSON.stringify(fixtures));
-      document.getElementById('fix-opponent').value = '';
-      document.getElementById('fix-date').value = '';
-      renderFixtures();
-    }
 
-    function addResult() {
-      const opponent = document.getElementById('res-opponent').value;
-      const gf = document.getElementById('res-gf').value || 0;
-      const ga = document.getElementById('res-ga').value || 0;
-      const date = document.getElementById('res-date').value;
-      if (!opponent) return;
-      results.push({ opponent, gf, ga, date });
-      localStorage.setItem('sky_results', JSON.stringify(results));
-      document.getElementById('res-opponent').value = '';
-      document.getElementById('res-gf').value = '';
-      document.getElementById('res-ga').value = '';
-      document.getElementById('res-date').value = '';
-      renderResults();
+      db.ref('fixtures').push({ opponent, date });
+      document.getElementById('f-opponent').value = '';
+      document.getElementById('f-date').value = '';
     }
-
-    function deleteFixture(index) {
-      fixtures.splice(index, 1);
-      localStorage.setItem('sky_fixtures', JSON.stringify(fixtures));
-      renderFixtures();
-    }
-
-    function deleteResult(index) {
-      results.splice(index, 1);
-      localStorage.setItem('sky_results', JSON.stringify(results));
-      renderResults();
-    }
-
-    // Initial load
-    renderFixtures();
-    renderResults();
   </script>
 </body>
 </html>
