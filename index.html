@@ -24,7 +24,7 @@
     
     .list-item { background: #1a080c; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
-    .score-badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
+    .badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
     .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
     .nav button { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 8px 5px; white-space: nowrap; }
@@ -52,7 +52,10 @@
     <div class="card">
       <h2>Squad Players</h2>
       <div id="squad-form" class="form-group" style="display:none;">
-        <input type="text" id="p-name" placeholder="Player Name">
+        <div class="row">
+          <input type="number" id="p-num" placeholder="#" style="width: 30%;">
+          <input type="text" id="p-name" placeholder="Player Name" style="width: 70%;">
+        </div>
         <button class="action-btn" onclick="addPlayer()">Add Player</button>
       </div>
       <div id="squad-list"></div>
@@ -172,7 +175,12 @@
       
       snapshot.forEach(child => {
         const p = child.val();
-        squadList.innerHTML += `<div class="list-item"><strong>${p.name}</strong></div>`;
+        const numLabel = p.number ? `#${p.number}` : '';
+        squadList.innerHTML += `
+          <div class="list-item">
+            <strong>${p.name}</strong>
+            ${numLabel ? `<span class="badge">${numLabel}</span>` : ''}
+          </div>`;
         scorerSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
       });
     });
@@ -188,7 +196,7 @@
               <span class="date-tag">${formatDate(data.date)}</span>
               <strong>vs ${data.opponent}</strong>
             </div>
-            <span class="score-badge">${data.us} - ${data.them}</span>
+            <span class="badge">${data.us} - ${data.them}</span>
           </div>`;
       });
     });
@@ -211,9 +219,12 @@
     // FIREBASE WRITES
     function addPlayer() {
       const name = document.getElementById('p-name').value;
+      const number = document.getElementById('p-num').value;
       if (!name) return;
-      db.ref('players').push({ name });
+      
+      db.ref('players').push({ name, number });
       document.getElementById('p-name').value = '';
+      document.getElementById('p-num').value = '';
     }
 
     function logMatch() {
