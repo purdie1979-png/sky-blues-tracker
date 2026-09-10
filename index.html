@@ -17,7 +17,7 @@
     .card { background: #2a1219; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left; }
     .card h2 { margin-top: 0; font-size: 18px; text-align: center; color: #fff; }
     
-    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
     .row { display: flex; gap: 8px; }
     input, select { padding: 10px; border-radius: 5px; border: 1px solid #333; background: #1a080c; color: white; font-size: 14px; width: 100%; box-sizing: border-box; }
     .action-btn { width: 100%; background: #5bc0be; color: #1a080c; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 5px; }
@@ -26,6 +26,12 @@
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
     .badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
+    /* Attendance status badges */
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .status-here { background: #2e7d32; color: #fff; }
+    .status-missing { background: #c62828; color: #fff; }
+    .status-excused { background: #f57c00; color: #fff; }
+
     .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
     .nav button { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 8px 5px; white-space: nowrap; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
@@ -66,6 +72,17 @@
   <div id="attendance-tab" class="tab-content">
     <div class="card">
       <h2>Training Attendance</h2>
+      <div id="attendance-form" class="form-group" style="display:none;">
+        <select id="att-player">
+          <option value="">Select Player</option>
+        </select>
+        <select id="att-status">
+          <option value="Here">Here</option>
+          <option value="Missing">Missing</option>
+          <option value="Excused">Excused</option>
+        </select>
+        <button class="action-btn" onclick="recordAttendance()">Log Attendance</button>
+      </div>
       <div id="attendance-list"></div>
     </div>
   </div>
@@ -80,9 +97,12 @@
           <input type="number" id="m-us" placeholder="Us">
           <input type="number" id="m-them" placeholder="Them">
         </div>
-        <select id="m-scorer">
-          <option value="">Select Goal Scorer (Optional)</option>
-        </select>
+        <div class="row">
+          <select id="m-scorer" style="width: 65%;">
+            <option value="">Select Goal Scorer</option>
+          </select>
+          <input type="number" id="m-goals" placeholder="Goals" min="1" value="1" style="width: 35%;">
+        </div>
         <input type="date" id="m-date">
         <button class="action-btn" onclick="logMatch()">Log Match Result</button>
       </div>
@@ -145,6 +165,7 @@
           isAdmin = true;
           document.getElementById('mode-text').innerText = "Mode: Coach (Admin)";
           document.getElementById('squad-form').style.display = "flex";
+          document.getElementById('attendance-form').style.display = "flex";
           document.getElementById('match-form').style.display = "flex";
           document.getElementById('fixture-form').style.display = "flex";
         } else {
@@ -166,39 +187,93 @@
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    // FIREBASE READS
+    // FIREBASE READS & AUTO-POPULATION
     db.ref('players').on('value', snapshot => {
       const squadList = document.getElementById('squad-list');
+      const attSelect = document.getElementById('att-player');
       const scorerSelect = document.getElementById('m-scorer');
+      
       squadList.innerHTML = '';
-      scorerSelect.innerHTML = '<option value="">Select Goal Scorer (Optional)</option>';
+      attSelect.innerHTML = '<option value="">Select Player</option>';
+      scorerSelect.innerHTML = '<option value="">Select Goal Scorer</option>';
       
       snapshot.forEach(child => {
         const p = child.val();
-        const numLabel = p.number ? `#${p.number}` : '';
+        const numLabel = p.number ? `#${p.number} ` : '';
+        
         squadList.innerHTML += `
           <div class="list-item">
-            <strong>${p.name}</strong>
-            ${numLabel ? `<span class="badge">${numLabel}</span>` : ''}
+            <div>
+              ${p.number ? `<span class="badge" style="margin-right:8px;">#${p.number}</span>` : ''}
+              <strong>${p.name}</strong>
+            </div>
           </div>`;
-        scorerSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+          
+        attSelect.innerHTML += `<option value="${p.name}">${numLabel}${p.name}</option>`;
+        scorerSelect.innerHTML += `<option value="${p.name}">${numLabel}${p.name}</option>`;
+      });
+    });
+
+    db.ref('attendance').on('value', snapshot => {
+      const container = document.getElementById('attendance-list');
+      container.innerHTML = '';
+      snapshot.forEach(child => {
+        const data = child.val();
+        let classType = 'status-here';
+        if (data.status === 'Missing') classType = 'status-missing';
+        if (data.status === 'Excused') classType = 'status-excused';
+
+        container.innerHTML += `
+          <div class="list-item">
+            <strong>${data.player}</strong>
+            <span class="status-badge ${classType}">${data.status}</span>
+          </div>`;
       });
     });
 
     db.ref('matches').on('value', snapshot => {
-      const container = document.getElementById('matches-list');
-      container.innerHTML = '';
+      const matchesContainer = document.getElementById('matches-list');
+      const scorersContainer = document.getElementById('scorers-list');
+      
+      matchesContainer.innerHTML = '';
+      scorersContainer.innerHTML = '';
+      
+      const scorerTotals = {};
+
       snapshot.forEach(child => {
         const data = child.val();
-        container.innerHTML += `
+        
+        // Log match output
+        const scorerText = data.scorer ? ` (${data.scorer} x${data.goals || 1})` : '';
+        matchesContainer.innerHTML += `
           <div class="list-item">
             <div>
               <span class="date-tag">${formatDate(data.date)}</span>
-              <strong>vs ${data.opponent}</strong>
+              <strong>vs ${data.opponent}</strong>${scorerText}
             </div>
             <span class="badge">${data.us} - ${data.them}</span>
           </div>`;
+
+        // Calculate auto-populated top scorers table
+        if (data.scorer) {
+          const goalCount = parseInt(data.goals) || 1;
+          scorerTotals[data.scorer] = (scorerTotals[data.scorer] || 0) + goalCount;
+        }
       });
+
+      // Render top scorers list ordered by total goals
+      const sortedScorers = Object.entries(scorerTotals).sort((a, b) => b[1] - a[1]);
+      if (sortedScorers.length === 0) {
+        scorersContainer.innerHTML = '<p style="text-align:center; color:#888;">No goals recorded yet</p>';
+      } else {
+        sortedScorers.forEach(([player, totalGoals]) => {
+          scorersContainer.innerHTML += `
+            <div class="list-item">
+              <strong>${player}</strong>
+              <span class="badge">${totalGoals} ${totalGoals === 1 ? 'goal' : 'goals'}</span>
+            </div>`;
+        });
+      }
     });
 
     db.ref('fixtures').on('value', snapshot => {
@@ -227,19 +302,30 @@
       document.getElementById('p-num').value = '';
     }
 
+    function recordAttendance() {
+      const player = document.getElementById('att-player').value;
+      const status = document.getElementById('att-status').value;
+      if (!player) return;
+
+      db.ref('attendance').push({ player, status });
+    }
+
     function logMatch() {
       const opponent = document.getElementById('m-opponent').value;
       const us = document.getElementById('m-us').value || 0;
       const them = document.getElementById('m-them').value || 0;
       const date = document.getElementById('m-date').value;
       const scorer = document.getElementById('m-scorer').value;
+      const goals = document.getElementById('m-goals').value || 1;
       if (!opponent) return;
 
-      db.ref('matches').push({ opponent, us, them, date, scorer });
+      db.ref('matches').push({ opponent, us, them, date, scorer, goals });
       document.getElementById('m-opponent').value = '';
       document.getElementById('m-us').value = '';
       document.getElementById('m-them').value = '';
       document.getElementById('m-date').value = '';
+      document.getElementById('m-scorer').value = '';
+      document.getElementById('m-goals').value = '1';
     }
 
     function addFixture() {
