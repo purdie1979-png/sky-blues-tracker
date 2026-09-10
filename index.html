@@ -21,18 +21,18 @@
     .row { display: flex; gap: 8px; }
     input, select { padding: 10px; border-radius: 5px; border: 1px solid #333; background: #1a080c; color: white; font-size: 14px; width: 100%; box-sizing: border-box; }
     .action-btn { width: 100%; background: #5bc0be; color: #1a080c; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 5px; }
-    
+    .small-btn { background: #5bc0be; color: #1a080c; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .del-btn { background: #c62828; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+
     .list-item { background: #1a080c; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
     .badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
-    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .status-present { background: #2e7d32; color: #fff; }
-    .status-absent { background: #c62828; color: #fff; }
-    .status-excused { background: #f57c00; color: #fff; }
+    .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
+    .bulk-att-row select { width: 40%; }
 
-    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
-    .nav button { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 8px 5px; white-space: nowrap; }
+    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
+    .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 5px; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
     .tab-content { display: none; padding-bottom: 70px; }
     .tab-content.active { display: block; }
@@ -70,7 +70,7 @@
   <!-- ATTENDANCE TAB -->
   <div id="attendance-tab" class="tab-content">
     <div class="card">
-      <h2>Attendance Tracker</h2>
+      <h2>Bulk Attendance</h2>
       <div id="attendance-form" class="form-group" style="display:none;">
         <div class="row">
           <input type="date" id="att-date" style="width: 50%;">
@@ -79,38 +79,48 @@
             <option value="Match Day">Match Day</option>
           </select>
         </div>
-        <select id="att-player">
-          <option value="">Select Player</option>
-        </select>
-        <select id="att-status">
-          <option value="Present">Present</option>
-          <option value="Absent">Absent</option>
-          <option value="Excused">Excused</option>
-        </select>
-        <button class="action-btn" onclick="recordAttendance()">Log Attendance</button>
+        <div id="bulk-players-container"></div>
+        <button class="action-btn" onclick="submitBulkAttendance()">Save Attendance Session</button>
       </div>
-      <div id="attendance-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Attendance History</h2>
+      <div id="attendance-history"></div>
     </div>
   </div>
 
-  <!-- MATCHES / RESULTS TAB -->
-  <div id="matches-tab" class="tab-content">
+  <!-- RESULTS TAB -->
+  <div id="results-tab" class="tab-content">
     <div class="card">
-      <h2>Matches & Results</h2>
+      <h2>Match Results</h2>
       <div id="match-form" class="form-group" style="display:none;">
-        <input type="text" id="m-opponent" placeholder="Opponent Team">
+        <div class="row">
+          <input type="text" id="m-opponent" placeholder="Opponent Name" style="width: 65%;">
+          <select id="m-venue" style="width: 35%;">
+            <option value="Home">Home</option>
+            <option value="Away">Away</option>
+          </select>
+        </div>
         <div class="row">
           <input type="number" id="m-us" placeholder="Us">
           <input type="number" id="m-them" placeholder="Them">
         </div>
-        <div class="row">
-          <select id="m-scorer" style="width: 65%;">
-            <option value="">Select Goal Scorer</option>
-          </select>
-          <input type="number" id="m-goals" placeholder="Goals" min="1" value="1" style="width: 35%;">
-        </div>
         <input type="date" id="m-date">
-        <button class="action-btn" onclick="logMatch()">Log Match Result</button>
+        
+        <div style="margin-top: 10px;">
+          <label style="font-size:12px; color:#5bc0be;">Add Goal Scorers:</label>
+          <div class="row" style="margin-top:5px;">
+            <select id="m-scorer" style="width: 65%;">
+              <option value="">Select Scorer</option>
+            </select>
+            <input type="number" id="m-goals" placeholder="Goals" min="1" value="1" style="width: 35%;">
+          </div>
+          <button type="button" class="small-btn" onclick="addScorerToMatch()" style="margin-top:5px; width:100%;">+ Add Scorer to Game</button>
+          <div id="match-scorers-temp" style="font-size:12px; margin-top:5px; color:#aaa;"></div>
+        </div>
+
+        <button class="action-btn" onclick="logMatch()">Save Match Result</button>
       </div>
       <div id="matches-list"></div>
     </div>
@@ -129,18 +139,10 @@
     </div>
   </div>
 
-  <!-- TACTICS TAB -->
-  <div id="tactics-tab" class="tab-content">
-    <div class="card">
-      <h2>Tactics & Lineup</h2>
-      <p style="text-align:center; color:#888;">Matchday tactical board</p>
-    </div>
-  </div>
-
   <!-- SCORERS TAB -->
   <div id="scorers-tab" class="tab-content">
     <div class="card">
-      <h2>Top Scorers</h2>
+      <h2>Top Goal Scorers</h2>
       <div id="scorers-list"></div>
     </div>
   </div>
@@ -149,9 +151,8 @@
   <div class="nav">
     <button class="active" onclick="switchTab('squad-tab', this)">Squad</button>
     <button onclick="switchTab('attendance-tab', this)">Attendance</button>
-    <button onclick="switchTab('matches-tab', this)">Matches</button>
+    <button onclick="switchTab('results-tab', this)">Results</button>
     <button onclick="switchTab('fixtures-tab', this)">Fixtures</button>
-    <button onclick="switchTab('tactics-tab', this)">Tactics</button>
     <button onclick="switchTab('scorers-tab', this)">Scorers</button>
   </div>
 
@@ -163,6 +164,8 @@
     const db = firebase.database();
 
     let isAdmin = false;
+    let currentMatchScorers = [];
+    let playerListGlobal = [];
 
     function toggleAdmin() {
       if (!isAdmin) {
@@ -170,14 +173,21 @@
         if (pin === "1234") {
           isAdmin = true;
           document.getElementById('mode-text').innerText = "Mode: Coach (Admin)";
-          document.getElementById('squad-form').style.display = "flex";
-          document.getElementById('attendance-form').style.display = "flex";
-          document.getElementById('match-form').style.display = "flex";
-          document.getElementById('fixture-form').style.display = "flex";
+          updateAdminUI();
         } else {
           alert("Incorrect PIN");
         }
       }
+    }
+
+    function updateAdminUI() {
+      const displayStyle = isAdmin ? "flex" : "none";
+      document.getElementById('squad-form').style.display = displayStyle;
+      document.getElementById('attendance-form').style.display = displayStyle;
+      document.getElementById('match-form').style.display = displayStyle;
+      document.getElementById('fixture-form').style.display = displayStyle;
+      renderPlayers();
+      renderFixtures();
     }
 
     function switchTab(tabId, btn) {
@@ -193,109 +203,53 @@
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    // FIREBASE LISTENERS
-    db.ref('players').on('value', snapshot => {
+    // SQUAD
+    function renderPlayers() {
       const squadList = document.getElementById('squad-list');
-      const attSelect = document.getElementById('att-player');
+      const bulkContainer = document.getElementById('bulk-players-container');
       const scorerSelect = document.getElementById('m-scorer');
-      
+
       squadList.innerHTML = '';
-      attSelect.innerHTML = '<option value="">Select Player</option>';
-      scorerSelect.innerHTML = '<option value="">Select Goal Scorer</option>';
-      
-      snapshot.forEach(child => {
-        const p = child.val();
+      bulkContainer.innerHTML = '';
+      scorerSelect.innerHTML = '<option value="">Select Scorer</option>';
+
+      playerListGlobal.forEach(p => {
         const numLabel = p.number ? `#${p.number}` : 'N/A';
-        
+        const delBtn = isAdmin ? `<button class="del-btn" onclick="deletePlayer('${p.id}')">Delete</button>` : '';
+
         squadList.innerHTML += `
           <div class="list-item">
             <div>
               <span class="badge" style="margin-right:8px;">${numLabel}</span>
               <strong>${p.name}</strong>
             </div>
+            ${delBtn}
           </div>`;
-          
-        attSelect.innerHTML += `<option value="${p.name}">${p.number ? '#' + p.number + ' ' : ''}${p.name}</option>`;
-        scorerSelect.innerHTML += `<option value="${p.name}">${p.number ? '#' + p.number + ' ' : ''}${p.name}</option>`;
-      });
-    });
 
-    db.ref('attendance').on('value', snapshot => {
-      const container = document.getElementById('attendance-list');
-      container.innerHTML = '';
+        bulkContainer.innerHTML += `
+          <div class="bulk-att-row">
+            <span><strong>${numLabel}</strong> ${p.name}</span>
+            <select class="bulk-status" data-player="${p.name}">
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+              <option value="Excused">Excused</option>
+            </select>
+          </div>`;
+
+        scorerSelect.innerHTML += `<option value="${p.name}">${numLabel} ${p.name}</option>`;
+      });
+    }
+
+    db.ref('players').on('value', snapshot => {
+      playerListGlobal = [];
       snapshot.forEach(child => {
-        const data = child.val();
-        let classType = 'status-present';
-        if (data.status === 'Absent') classType = 'status-absent';
-        if (data.status === 'Excused') classType = 'status-excused';
-
-        container.innerHTML += `
-          <div class="list-item">
-            <div>
-              <span class="date-tag">${formatDate(data.date)} (${data.type || 'Session'})</span>
-              <strong>${data.player}</strong>
-            </div>
-            <span class="status-badge ${classType}">${data.status}</span>
-          </div>`;
+        const p = child.val();
+        p.id = child.key;
+        playerListGlobal.push(p);
       });
+      renderPlayers();
     });
 
-    db.ref('matches').on('value', snapshot => {
-      const matchesContainer = document.getElementById('matches-list');
-      const scorersContainer = document.getElementById('scorers-list');
-      
-      matchesContainer.innerHTML = '';
-      scorersContainer.innerHTML = '';
-      const scorerTotals = {};
-
-      snapshot.forEach(child => {
-        const data = child.val();
-        const scorerText = data.scorer ? ` (${data.scorer} x${data.goals || 1})` : '';
-        matchesContainer.innerHTML += `
-          <div class="list-item">
-            <div>
-              <span class="date-tag">${formatDate(data.date)}</span>
-              <strong>vs ${data.opponent}</strong>${scorerText}
-            </div>
-            <span class="badge">${data.us} - ${data.them}</span>
-          </div>`;
-
-        if (data.scorer) {
-          const goalCount = parseInt(data.goals) || 1;
-          scorerTotals[data.scorer] = (scorerTotals[data.scorer] || 0) + goalCount;
-        }
-      });
-
-      const sortedScorers = Object.entries(scorerTotals).sort((a, b) => b[1] - a[1]);
-      if (sortedScorers.length === 0) {
-        scorersContainer.innerHTML = '<p style="text-align:center; color:#888;">No goals recorded yet</p>';
-      } else {
-        sortedScorers.forEach(([player, totalGoals]) => {
-          scorersContainer.innerHTML += `
-            <div class="list-item">
-              <strong>${player}</strong>
-              <span class="badge">${totalGoals} ${totalGoals === 1 ? 'goal' : 'goals'}</span>
-            </div>`;
-        });
-      }
-    });
-
-    db.ref('fixtures').on('value', snapshot => {
-      const container = document.getElementById('fixtures-list');
-      container.innerHTML = '';
-      snapshot.forEach(child => {
-        const data = child.val();
-        container.innerHTML += `
-          <div class="list-item">
-            <div>
-              <span class="date-tag">${formatDate(data.date)}</span>
-              <strong>vs ${data.opponent}</strong>
-            </div>
-          </div>`;
-      });
-    });
-
-    // ACTION FUNCTIONS
     function addPlayer() {
       const name = document.getElementById('p-name').value;
       const number = document.getElementById('p-num').value;
@@ -306,43 +260,172 @@
       document.getElementById('p-num').value = '';
     }
 
-    function recordAttendance() {
-      const player = document.getElementById('att-player').value;
-      const status = document.getElementById('att-status').value;
+    function deletePlayer(id) {
+      if (confirm('Delete this player?')) {
+        db.ref('players/' + id).remove();
+      }
+    }
+
+    // ATTENDANCE
+    function submitBulkAttendance() {
       const date = document.getElementById('att-date').value;
       const type = document.getElementById('att-type').value;
+      if (!date) { alert('Please select a date'); return; }
+
+      const selects = document.querySelectorAll('.bulk-status');
+      const records = [];
+
+      selects.forEach(sel => {
+        records.push({
+          player: sel.getAttribute('data-player'),
+          status: sel.value
+        });
+      });
+
+      db.ref('attendance_sessions').push({ date, type, records });
+      alert('Attendance saved!');
+    }
+
+    db.ref('attendance_sessions').on('value', snapshot => {
+      const history = document.getElementById('attendance-history');
+      history.innerHTML = '';
+
+      snapshot.forEach(child => {
+        const session = child.val();
+        let recordsHTML = '';
+        if (session.records) {
+          session.records.forEach(r => {
+            recordsHTML += `<span style="font-size:11px; margin-right:8px;">${r.player}: <strong>${r.status}</strong></span> `;
+          });
+        }
+
+        history.innerHTML += `
+          <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px;">
+            <div>
+              <span class="date-tag">${formatDate(session.date)} (${session.type})</span>
+            </div>
+            <div>${recordsHTML}</div>
+          </div>`;
+      });
+    });
+
+    // RESULTS & TOP SCORERS
+    function addScorerToMatch() {
+      const player = document.getElementById('m-scorer').value;
+      const goals = parseInt(document.getElementById('m-goals').value) || 1;
       if (!player) return;
 
-      db.ref('attendance').push({ player, status, date, type });
-      document.getElementById('att-player').value = '';
+      currentMatchScorers.push({ player, goals });
+      document.getElementById('match-scorers-temp').innerText = currentMatchScorers.map(s => `${s.player} (${s.goals})`).join(', ');
+      document.getElementById('m-scorer').value = '';
+      document.getElementById('m-goals').value = '1';
     }
 
     function logMatch() {
       const opponent = document.getElementById('m-opponent').value;
+      const venue = document.getElementById('m-venue').value;
       const us = document.getElementById('m-us').value || 0;
       const them = document.getElementById('m-them').value || 0;
       const date = document.getElementById('m-date').value;
-      const scorer = document.getElementById('m-scorer').value;
-      const goals = document.getElementById('m-goals').value || 1;
       if (!opponent) return;
 
-      db.ref('matches').push({ opponent, us, them, date, scorer, goals });
+      db.ref('matches').push({ opponent, venue, us, them, date, scorers: currentMatchScorers });
+      
       document.getElementById('m-opponent').value = '';
       document.getElementById('m-us').value = '';
       document.getElementById('m-them').value = '';
       document.getElementById('m-date').value = '';
-      document.getElementById('m-scorer').value = '';
-      document.getElementById('m-goals').value = '1';
+      document.getElementById('match-scorers-temp').innerText = '';
+      currentMatchScorers = [];
     }
+
+    db.ref('matches').on('value', snapshot => {
+      const matchesContainer = document.getElementById('matches-list');
+      const scorersContainer = document.getElementById('scorers-list');
+      matchesContainer.innerHTML = '';
+      scorersContainer.innerHTML = '';
+
+      const scorerTotals = {};
+
+      snapshot.forEach(child => {
+        const data = child.val();
+        let scorersText = '';
+        if (data.scorers && data.scorers.length > 0) {
+          scorersText = '⚽ ' + data.scorers.map(s => `${s.player} (${s.goals})`).join(', ');
+          data.scorers.forEach(s => {
+            scorerTotals[s.player] = (scorerTotals[s.player] || 0) + s.goals;
+          });
+        }
+
+        matchesContainer.innerHTML += `
+          <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+              <div>
+                <span class="date-tag">${formatDate(data.date)} (${data.venue})</span>
+                <strong>vs ${data.opponent}</strong>
+              </div>
+              <span class="badge">${data.us} - ${data.them}</span>
+            </div>
+            <div style="font-size:12px; color:#aaa;">${scorersText}</div>
+          </div>`;
+      });
+
+      const sortedScorers = Object.entries(scorerTotals).sort((a, b) => b[1] - a[1]);
+      if (sortedScorers.length === 0) {
+        scorersContainer.innerHTML = '<p style="text-align:center; color:#888;">No goals logged yet</p>';
+      } else {
+        sortedScorers.forEach(([player, goals]) => {
+          scorersContainer.innerHTML += `
+            <div class="list-item">
+              <strong>${player}</strong>
+              <span class="badge">${goals} ${goals === 1 ? 'goal' : 'goals'}</span>
+            </div>`;
+        });
+      }
+    });
+
+    // FIXTURES
+    let rawFixtures = [];
+    function renderFixtures() {
+      const container = document.getElementById('fixtures-list');
+      container.innerHTML = '';
+      rawFixtures.forEach(f => {
+        const playedBtn = (isAdmin && !f.played) ? `<button class="small-btn" onclick="markFixturePlayed('${f.id}')">Mark Played</button>` : '';
+        const statusBadge = f.played ? `<span class="badge" style="background:#555; color:#fff;">Played</span>` : playedBtn;
+
+        container.innerHTML += `
+          <div class="list-item">
+            <div>
+              <span class="date-tag">${formatDate(f.date)}</span>
+              <strong>vs ${f.opponent}</strong>
+            </div>
+            ${statusBadge}
+          </div>`;
+      });
+    }
+
+    db.ref('fixtures').on('value', snapshot => {
+      rawFixtures = [];
+      snapshot.forEach(child => {
+        const f = child.val();
+        f.id = child.key;
+        rawFixtures.push(f);
+      });
+      renderFixtures();
+    });
 
     function addFixture() {
       const opponent = document.getElementById('f-opponent').value;
       const date = document.getElementById('f-date').value;
       if (!opponent) return;
 
-      db.ref('fixtures').push({ opponent, date });
+      db.ref('fixtures').push({ opponent, date, played: false });
       document.getElementById('f-opponent').value = '';
       document.getElementById('f-date').value = '';
+    }
+
+    function markFixturePlayed(id) {
+      db.ref('fixtures/' + id).update({ played: true });
     }
   </script>
 </body>
