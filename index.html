@@ -26,10 +26,10 @@
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
     .score-badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
-    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
-    .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 0; }
+    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
+    .nav button { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 8px 5px; white-space: nowrap; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
-    .tab-content { display: none; padding-bottom: 60px; }
+    .tab-content { display: none; padding-bottom: 70px; }
     .tab-content.active { display: block; }
   </style>
 
@@ -47,8 +47,28 @@
     <button class="pin-btn" onclick="toggleAdmin()">Admin PIN</button>
   </div>
 
+  <!-- SQUAD TAB -->
+  <div id="squad-tab" class="tab-content active">
+    <div class="card">
+      <h2>Squad Players</h2>
+      <div id="squad-form" class="form-group" style="display:none;">
+        <input type="text" id="p-name" placeholder="Player Name">
+        <button class="action-btn" onclick="addPlayer()">Add Player</button>
+      </div>
+      <div id="squad-list"></div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE TAB -->
+  <div id="attendance-tab" class="tab-content">
+    <div class="card">
+      <h2>Training Attendance</h2>
+      <div id="attendance-list"></div>
+    </div>
+  </div>
+
   <!-- MATCHES / RESULTS TAB -->
-  <div id="matches-tab" class="tab-content active">
+  <div id="matches-tab" class="tab-content">
     <div class="card">
       <h2>Matches & Results</h2>
       <div id="match-form" class="form-group" style="display:none;">
@@ -57,6 +77,9 @@
           <input type="number" id="m-us" placeholder="Us">
           <input type="number" id="m-them" placeholder="Them">
         </div>
+        <select id="m-scorer">
+          <option value="">Select Goal Scorer (Optional)</option>
+        </select>
         <input type="date" id="m-date">
         <button class="action-btn" onclick="logMatch()">Log Match Result</button>
       </div>
@@ -77,14 +100,33 @@
     </div>
   </div>
 
+  <!-- TACTICS TAB -->
+  <div id="tactics-tab" class="tab-content">
+    <div class="card">
+      <h2>Tactics & Lineup</h2>
+      <p style="text-align:center; color:#888;">Matchday tactical board</p>
+    </div>
+  </div>
+
+  <!-- SCORERS TAB -->
+  <div id="scorers-tab" class="tab-content">
+    <div class="card">
+      <h2>Top Scorers</h2>
+      <div id="scorers-list"></div>
+    </div>
+  </div>
+
   <!-- NAV BAR -->
   <div class="nav">
-    <button class="active" onclick="switchTab('matches-tab', this)">Matches</button>
+    <button class="active" onclick="switchTab('squad-tab', this)">Squad</button>
+    <button onclick="switchTab('attendance-tab', this)">Attendance</button>
+    <button onclick="switchTab('matches-tab', this)">Matches</button>
     <button onclick="switchTab('fixtures-tab', this)">Fixtures</button>
+    <button onclick="switchTab('tactics-tab', this)">Tactics</button>
+    <button onclick="switchTab('scorers-tab', this)">Scorers</button>
   </div>
 
   <script>
-    // Config Firebase Realtime DB
     const firebaseConfig = {
       databaseURL: "https://sky-blues-tracker-default-rtdb.firebaseio.com" 
     };
@@ -96,9 +138,10 @@
     function toggleAdmin() {
       if (!isAdmin) {
         const pin = prompt("Enter Admin PIN:");
-        if (pin === "1234") { // Replace with your admin pin
+        if (pin === "1234") {
           isAdmin = true;
           document.getElementById('mode-text').innerText = "Mode: Coach (Admin)";
+          document.getElementById('squad-form').style.display = "flex";
           document.getElementById('match-form').style.display = "flex";
           document.getElementById('fixture-form').style.display = "flex";
         } else {
@@ -121,6 +164,19 @@
     }
 
     // FIREBASE READS
+    db.ref('players').on('value', snapshot => {
+      const squadList = document.getElementById('squad-list');
+      const scorerSelect = document.getElementById('m-scorer');
+      squadList.innerHTML = '';
+      scorerSelect.innerHTML = '<option value="">Select Goal Scorer (Optional)</option>';
+      
+      snapshot.forEach(child => {
+        const p = child.val();
+        squadList.innerHTML += `<div class="list-item"><strong>${p.name}</strong></div>`;
+        scorerSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+      });
+    });
+
     db.ref('matches').on('value', snapshot => {
       const container = document.getElementById('matches-list');
       container.innerHTML = '';
@@ -153,14 +209,22 @@
     });
 
     // FIREBASE WRITES
+    function addPlayer() {
+      const name = document.getElementById('p-name').value;
+      if (!name) return;
+      db.ref('players').push({ name });
+      document.getElementById('p-name').value = '';
+    }
+
     function logMatch() {
       const opponent = document.getElementById('m-opponent').value;
       const us = document.getElementById('m-us').value || 0;
       const them = document.getElementById('m-them').value || 0;
       const date = document.getElementById('m-date').value;
+      const scorer = document.getElementById('m-scorer').value;
       if (!opponent) return;
 
-      db.ref('matches').push({ opponent, us, them, date });
+      db.ref('matches').push({ opponent, us, them, date, scorer });
       document.getElementById('m-opponent').value = '';
       document.getElementById('m-us').value = '';
       document.getElementById('m-them').value = '';
