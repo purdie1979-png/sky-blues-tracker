@@ -11,20 +11,47 @@
       margin-top: 50px;
       background-color: #f0f8ff;
     }
-    h1 {
-      color: #005587;
-    }
-    #status {
-      font-weight: bold;
-      color: green;
-    }
+    h1 { color: #005587; }
+    #status { font-weight: bold; color: blue; }
   </style>
 </head>
 <body>
 
   <h1>Sky Blues Tracker</h1>
-  <p id="status">App Initialized!</p>
+  <p id="status">Connecting to Firebase...</p>
+
+  <!-- Firebase Web SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Your Firebase Configuration
+    const firebaseConfig = {
+      projectId: "sky-blues-tracker"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Test Database Connection
+    async function testConnection() {
+      try {
+        await setDoc(doc(db, "testCollection", "testDoc"), {
+          status: "Database connected successfully!",
+          timestamp: new Date()
+        });
+        document.getElementById("status").textContent = "Connected to Firebase successfully!";
+        document.getElementById("status").style.color = "green";
+      } catch (error) {
+        console.error(error);
+        document.getElementById("status").textContent = "Connection failed: " + error.message;
+        document.getElementById("status").style.color = "red";
+      }
+    }
+
+    testConnection();
+  </script>
 
 </body>
 </html>
-
