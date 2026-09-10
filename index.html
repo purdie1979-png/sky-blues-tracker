@@ -68,11 +68,11 @@
     </div>
   </div>
 
-  <!-- ATTENDANCE TAB -->
+  <!-- ATTENDANCE TAB (ADMIN ONLY) -->
   <div id="attendance-tab" class="tab-content">
     <div class="card">
       <h2>Record Attendance Session</h2>
-      <div id="attendance-form" class="form-group" style="display:none;">
+      <div id="attendance-form" class="form-group">
         <div class="row">
           <input type="date" id="att-date" style="width: 50%;">
           <select id="att-type" style="width: 50%;">
@@ -89,7 +89,6 @@
         
         <button class="action-btn" onclick="submitBulkAttendance()">Save Attendance Session</button>
       </div>
-      <div id="att-read-only-msg" class="empty-msg">Log in with Admin PIN to record session attendance.</div>
     </div>
 
     <div class="card">
@@ -158,7 +157,7 @@
   <!-- NAV BAR -->
   <div class="nav">
     <button class="active" onclick="switchTab('squad-tab', this)">Squad</button>
-    <button onclick="switchTab('attendance-tab', this)">Attendance</button>
+    <button id="att-nav-btn" style="display:none;" onclick="switchTab('attendance-tab', this)">Attendance</button>
     <button onclick="switchTab('results-tab', this)">Results</button>
     <button onclick="switchTab('fixtures-tab', this)">Fixtures</button>
     <button onclick="switchTab('scorers-tab', this)">Scorers</button>
@@ -196,12 +195,18 @@
     function updateAdminUI() {
       const displayStyle = isAdmin ? "flex" : "none";
       document.getElementById('squad-form').style.display = displayStyle;
-      document.getElementById('attendance-form').style.display = displayStyle;
       document.getElementById('match-form').style.display = displayStyle;
       document.getElementById('fixture-form').style.display = displayStyle;
       
-      const readMsg = document.getElementById('att-read-only-msg');
-      if (readMsg) readMsg.style.display = isAdmin ? "none" : "block";
+      // Toggle Attendance tab visibility for Admin only
+      const attBtn = document.getElementById('att-nav-btn');
+      if (attBtn) attBtn.style.display = isAdmin ? "inline-block" : "none";
+
+      // If logged out or not admin and currently on attendance tab, revert to squad tab
+      if (!isAdmin && document.getElementById('attendance-tab').classList.contains('active')) {
+        const firstNavBtn = document.querySelector('.nav button');
+        switchTab('squad-tab', firstNavBtn);
+      }
 
       renderPlayers();
       renderFixtures();
