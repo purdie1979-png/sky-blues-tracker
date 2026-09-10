@@ -5,356 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carbrain FC Sky Blues</title>
   <link rel="manifest" href="manifest.json">
-  
-  
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 15px;
-      background-color: #1a080c;
-      color: white;
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; background-color: #1a080c; color: white; text-align: center; }
     h1 { color: #5bc0be; margin-bottom: 5px; }
     .sub-head { color: #888; font-size: 14px; margin-bottom: 15px; }
-    
     .nav { display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; flex-wrap: wrap; }
     .nav button { background: none; border: none; color: #888; font-size: 13px; cursor: pointer; padding: 8px 5px; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
-
     .form-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
     .row { display: flex; gap: 10px; }
     input, select { padding: 10px; font-size: 15px; border-radius: 5px; border: 1px solid #333; background: #2a1219; color: white; width: 100%; box-sizing: border-box; }
     .btn { padding: 10px 15px; background-color: #5bc0be; color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-
     ul { list-style: none; padding: 0; }
-    li {
-      background: #2a1219;
-      margin: 8px 0;
-      padding: 12px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    li { background: #2a1219; margin: 8px 0; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
     .del-btn { background: #ff4d4d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-    .att-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    .checkbox { width: 22px; height: 22px; cursor: pointer; }
-    .badge { background: #5bc0be; color: black; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 12px; }
-    
-    .pitch {
-      background: #1e5128;
-      border: 2px solid white;
-      border-radius: 10px;
-      height: 320px;
-      position: relative;
-      margin-top: 15px;
-      overflow: hidden;
-    }
-    .pitch-line { position: absolute; background: rgba(255,255,255,0.4); }
-    .center-line { top: 50%; width: 100%; height: 2px; }
-    .center-circle { top: 38%; left: 35%; width: 30%; height: 24%; border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; position: absolute; }
-    .pitch-player {
-      position: absolute;
-      background: #5bc0be;
-      color: black;
-      font-weight: bold;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: grab;
-      font-size: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    }
-
-    .admin-bar { background: #2a1219; padding: 8px; border-radius: 5px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .date-badge { color: #5bc0be; font-size: 12px; display: block; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h1>CARBRAIN FC SKY BLUES</h1>
-  <div class="sub-head">Synced · Everyone sees this data</div>
+  <div class="sub-head">Match & Fixture Tracker</div>
 
-  <!-- ADMIN LOCK BAR -->
-  <div class="admin-bar">
-    <span id="adminStatus">Mode: Spectator (Read Only)</span>
-    <button class="btn" style="padding: 4px 10px; font-size: 12px;" onclick="toggleAdmin()">Admin PIN</button>
-  </div>
-
-  <!-- SQUAD TAB -->
-  <div id="tab-squad" class="tab-content">
-    <h2>Squad Profiles</h2>
-    <div class="row admin-only" style="display:none;">
-      <input type="text" id="playerName" placeholder="Player name">
-      <input type="number" id="playerNum" placeholder="#" style="width: 80px;">
-      <button class="btn" id="addPlayerBtn">+</button>
-    </div>
-    <ul id="squadList">Loading...</ul>
-  </div>
-
-  <!-- ATTENDANCE TAB -->
-  <div id="tab-attendance" class="tab-content" style="display: none;">
-    <h2>Attendance</h2>
-    <div class="row admin-only" style="display:none;">
-      <input type="date" id="attDate">
-      <button class="btn" id="saveAttBtn">Save</button>
-    </div>
-    <ul id="attPlayerList">Loading...</ul>
-  </div>
-
-  <!-- MATCHES TAB -->
-  <div id="tab-matches" class="tab-content" style="display: none;">
-    <h2>Matches & Results</h2>
-    <div class="form-box admin-only" style="display:none;">
-      <input type="text" id="opponent" placeholder="Opponent Team">
-      <div class="row">
-        <input type="number" id="ourScore" placeholder="Us">
-        <input type="number" id="theirScore" placeholder="Them">
-      </div>
-      <select id="goalScorerSelect">
-        <option value="">Select Goal Scorer (Optional)</option>
-      </select>
-      <button class="btn" id="addMatchBtn">Log Match Result</button>
-    </div>
-    <ul id="matchList">Loading matches...</ul>
+  <div class="nav">
+    <button class="active" onclick="showTab('fixtures')">Fixtures</button>
+    <button onclick="showTab('results')">Results</button>
   </div>
 
   <!-- FIXTURES TAB -->
-  <div id="tab-fixtures" class="tab-content" style="display: none;">
-    <h2>Upcoming Fixtures</h2>
-    <div class="form-box admin-only" style="display:none;">
-      <input type="text" id="fixOpponent" placeholder="Opponent">
-      <input type="text" id="fixVenue" placeholder="Venue / Location">
-      <input type="datetime-local" id="fixDate">
-      <button class="btn" id="addFixtureBtn">Add Fixture</button>
+  <div id="fixtures" class="tab-content active">
+    <h3>Upcoming Fixtures</h3>
+    <div class="form-box">
+      <input type="text" id="fix-opponent" placeholder="Opponent Name">
+      <input type="date" id="fix-date">
+      <button class="btn" onclick="addFixture()">Add Fixture</button>
     </div>
-    <ul id="fixtureList">Loading fixtures...</ul>
+    <ul id="fixtures-list"></ul>
   </div>
 
-  <!-- TACTICS TAB -->
-  <div id="tab-tactics" class="tab-content" style="display: none;">
-    <h2>Tactics Pitch</h2>
-    <p style="font-size: 12px; color:#aaa;">Drag players onto positions on the pitch</p>
-    <div class="pitch">
-      <div class="pitch-line center-line"></div>
-      <div class="center-circle"></div>
-      <div id="pitchPlayers"></div>
+  <!-- RESULTS TAB -->
+  <div id="results" class="tab-content">
+    <h3>Match Results</h3>
+    <div class="form-box">
+      <input type="text" id="res-opponent" placeholder="Opponent Name">
+      <div class="row">
+        <input type="number" id="res-gf" placeholder="Goals For">
+        <input type="number" id="res-ga" placeholder="Goals Against">
+      </div>
+      <input type="date" id="res-date">
+      <button class="btn" onclick="addResult()">Add Result</button>
     </div>
+    <ul id="results-list"></ul>
   </div>
 
-  <!-- SCORERS TAB -->
-  <div id="tab-scorers" class="tab-content" style="display: none;">
-    <h2>Golden Boot</h2>
-    <ul id="scorersList">Loading goals...</ul>
-  </div>
+  <script>
+    let fixtures = JSON.parse(localStorage.getItem('sky_fixtures')) || [];
+    let results = JSON.parse(localStorage.getItem('sky_results')) || [];
 
-  <!-- BOTTOM NAVBAR -->
-  <div class="nav">
-    <button class="active" onclick="switchTab('squad')">Squad</button>
-    <button onclick="switchTab('attendance')">Attendance</button>
-    <button onclick="switchTab('matches')">Matches</button>
-    <button onclick="switchTab('fixtures')">Fixtures</button>
-    <button onclick="switchTab('tactics')">Tactics</button>
-    <button onclick="switchTab('scorers')">Scorers</button>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = { projectId: "sky-blues-tracker" };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    let isAdmin = false;
-    const ADMIN_PIN = "1234";
-
-    window.toggleAdmin = () => {
-      if (isAdmin) {
-        isAdmin = false;
-        alert("Logged out of Admin mode.");
-      } else {
-        const pin = prompt("Enter Coach Admin PIN:");
-        if (pin === ADMIN_PIN) {
-          isAdmin = true;
-          alert("Admin Mode Unlocked!");
-        } else {
-          alert("Incorrect PIN");
-        }
-      }
-      updateAdminUI();
-    };
-
-    function updateAdminUI() {
-      document.getElementById("adminStatus").textContent = isAdmin ? "Mode: Coach (Admin)" : "Mode: Spectator (Read Only)";
-      document.querySelectorAll(".admin-only").forEach(el => el.style.display = isAdmin ? "flex" : "none");
-      document.querySelectorAll(".del-btn").forEach(el => el.style.display = isAdmin ? "inline-block" : "none");
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
     }
 
-    document.getElementById('attDate').valueAsDate = new Date();
+    function formatDate(dateStr) {
+      if (!dateStr) return 'Date TBD';
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
 
-    window.switchTab = (tabName) => {
-      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.nav button').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabName).style.display = 'block';
-      event.target.classList.add('active');
-    };
-
-    onSnapshot(collection(db, "players"), (snapshot) => {
-      const squadList = document.getElementById("squadList");
-      const attPlayerList = document.getElementById("attPlayerList");
-      const scorerSelect = document.getElementById("goalScorerSelect");
-      const scorersList = document.getElementById("scorersList");
-      const pitchPlayers = document.getElementById("pitchPlayers");
-      
-      squadList.innerHTML = "";
-      attPlayerList.innerHTML = "";
-      scorersList.innerHTML = "";
-      pitchPlayers.innerHTML = "";
-      scorerSelect.innerHTML = '<option value="">Select Goal Scorer (Optional)</option>';
-
-      let players = [];
-      let i = 0;
-
-      snapshot.forEach((docSnap) => {
-        const p = docSnap.data();
-        players.push({ id: docSnap.id, ...p });
-
-        const li = document.createElement("li");
-        li.innerHTML = `<div>
-                          <strong>#${p.number || ''} ${p.name}</strong><br>
-                          <small style="color:#aaa;">Goals: ${p.goals || 0}</small>
-                        </div>
-                        <button class="del-btn" style="display:${isAdmin ? 'inline-block':'none'};" onclick="deletePlayer('${docSnap.id}')">✕</button>`;
-        squadList.appendChild(li);
-
-        const attLi = document.createElement("li");
-        attLi.innerHTML = `<div class="att-row">
-                             <span><strong>#${p.number || ''}</strong> ${p.name}</span>
-                             <input type="checkbox" class="checkbox" data-id="${docSnap.id}">
-                           </div>`;
-        attPlayerList.appendChild(attLi);
-
-        const option = document.createElement("option");
-        option.value = docSnap.id;
-        option.textContent = p.name;
-        scorerSelect.appendChild(option);
-
-        const pToken = document.createElement("div");
-        pToken.className = "pitch-player";
-        pToken.textContent = p.number || p.name.substring(0,3);
-        pToken.style.left = (20 + (i % 4) * 20) + "%";
-        pToken.style.top = (20 + Math.floor(i / 4) * 25) + "%";
-        pToken.draggable = true;
-        pitchPlayers.appendChild(pToken);
-        i++;
+    function renderFixtures() {
+      const list = document.getElementById('fixtures-list');
+      list.innerHTML = '';
+      fixtures.forEach((item, index) => {
+        list.innerHTML += `
+          <li>
+            <div>
+              <span class="date-badge">${formatDate(item.date)}</span>
+              <strong>vs ${item.opponent}</strong>
+            </div>
+            <button class="del-btn" onclick="deleteFixture(${index})">X</button>
+          </li>
+        `;
       });
+    }
 
-      players.sort((a, b) => (b.goals || 0) - (a.goals || 0));
-      players.forEach(p => {
-        if (p.goals && p.goals > 0) {
-          const scLi = document.createElement("li");
-          scLi.innerHTML = `<span>${p.name}</span> <span class="badge">${p.goals} goals</span>`;
-          scorersList.appendChild(scLi);
-        }
+    function renderResults() {
+      const list = document.getElementById('results-list');
+      list.innerHTML = '';
+      results.forEach((item, index) => {
+        list.innerHTML += `
+          <li>
+            <div>
+              <span class="date-badge">${formatDate(item.date)}</span>
+              <strong>vs ${item.opponent}</strong> (${item.gf} - ${item.ga})
+            </div>
+            <button class="del-btn" onclick="deleteResult(${index})">X</button>
+          </li>
+        `;
       });
-      if (scorersList.innerHTML === "") scorersList.innerHTML = "<p>No goals logged yet.</p>";
-      updateAdminUI();
-    });
+    }
 
-    document.getElementById("addPlayerBtn").addEventListener("click", async () => {
-      const name = document.getElementById("playerName").value.trim();
-      const number = document.getElementById("playerNum").value;
-      if (!name) return alert("Enter name");
-      await addDoc(collection(db, "players"), { name, number, goals: 0 });
-      document.getElementById("playerName").value = "";
-      document.getElementById("playerNum").value = "";
-    });
+    function addFixture() {
+      const opponent = document.getElementById('fix-opponent').value;
+      const date = document.getElementById('fix-date').value;
+      if (!opponent) return;
+      fixtures.push({ opponent, date });
+      localStorage.setItem('sky_fixtures', JSON.stringify(fixtures));
+      document.getElementById('fix-opponent').value = '';
+      document.getElementById('fix-date').value = '';
+      renderFixtures();
+    }
 
-    window.deletePlayer = async (id) => {
-      if (!isAdmin) return;
-      await deleteDoc(doc(db, "players", id));
-    };
+    function addResult() {
+      const opponent = document.getElementById('res-opponent').value;
+      const gf = document.getElementById('res-gf').value || 0;
+      const ga = document.getElementById('res-ga').value || 0;
+      const date = document.getElementById('res-date').value;
+      if (!opponent) return;
+      results.push({ opponent, gf, ga, date });
+      localStorage.setItem('sky_results', JSON.stringify(results));
+      document.getElementById('res-opponent').value = '';
+      document.getElementById('res-gf').value = '';
+      document.getElementById('res-ga').value = '';
+      document.getElementById('res-date').value = '';
+      renderResults();
+    }
 
-    document.getElementById("saveAttBtn").addEventListener("click", async () => {
-      const date = document.getElementById("attDate").value;
-      if (!date) return alert("Select date");
+    function deleteFixture(index) {
+      fixtures.splice(index, 1);
+      localStorage.setItem('sky_fixtures', JSON.stringify(fixtures));
+      renderFixtures();
+    }
 
-      const records = [];
-      document.querySelectorAll('#attPlayerList .checkbox').forEach(cb => {
-        if (cb.checked) records.push(cb.getAttribute('data-id'));
-      });
+    function deleteResult(index) {
+      results.splice(index, 1);
+      localStorage.setItem('sky_results', JSON.stringify(results));
+      renderResults();
+    }
 
-      await setDoc(doc(db, "attendance", date), { date, presentPlayerIds: records });
-      alert("Attendance saved!");
-    });
-
-    document.getElementById("addMatchBtn").addEventListener("click", async () => {
-      const opponent = document.getElementById("opponent").value.trim();
-      const ourScore = document.getElementById("ourScore").value;
-      const theirScore = document.getElementById("theirScore").value;
-      const scorerId = document.getElementById("goalScorerSelect").value;
-
-      if (!opponent || ourScore === "" || theirScore === "") return alert("Enter details");
-
-      await addDoc(collection(db, "matches"), { opponent, ourScore, theirScore, timestamp: new Date() });
-
-      if (scorerId) {
-        await updateDoc(doc(db, "players", scorerId), { goals: increment(1) });
-      }
-
-      document.getElementById("opponent").value = "";
-      document.getElementById("ourScore").value = "";
-      document.getElementById("theirScore").value = "";
-      alert("Match logged!");
-    });
-
-    document.getElementById("addFixtureBtn").addEventListener("click", async () => {
-      const opponent = document.getElementById("fixOpponent").value.trim();
-      const venue = document.getElementById("fixVenue").value.trim();
-      const date = document.getElementById("fixDate").value;
-
-      if (!opponent || !date) return alert("Enter opponent & date");
-
-      await addDoc(collection(db, "fixtures"), { opponent, venue, date });
-      document.getElementById("fixOpponent").value = "";
-      document.getElementById("fixVenue").value = "";
-      document.getElementById("fixDate").value = "";
-      alert("Fixture added!");
-    });
-
-    onSnapshot(collection(db, "matches"), (snapshot) => {
-      const matchList = document.getElementById("matchList");
-      matchList.innerHTML = "";
-      snapshot.forEach((docSnap) => {
-        const m = docSnap.data();
-        const li = document.createElement("li");
-        li.innerHTML = `<span><strong>vs ${m.opponent}</strong></span> 
-                        <span class="badge">${m.ourScore} - ${m.theirScore}</span>`;
-        matchList.appendChild(li);
-      });
-      if (snapshot.empty) matchList.innerHTML = "<p>No matches logged yet.</p>";
-    });
-
-    onSnapshot(collection(db, "fixtures"), (snapshot) => {
-      const fixtureList = document.getElementById("fixtureList");
-      fixtureList.innerHTML = "";
-      snapshot.forEach((docSnap) => {
-        const f = docSnap.data();
-        const li = document.createElement("li");
-        const fDate = new Date(f.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-        li.innerHTML = `<div><strong>vs ${f.opponent}</strong><br><small style="color:#aaa;">${f.venue || 'TBD'} · ${fDate}</small></div>`;
-        fixtureList.appendChild(li);
-      });
-      if (snapshot.empty) fixtureList.innerHTML = "<p>No upcoming fixtures.</p>";
-    });
+    // Initial load
+    renderFixtures();
+    renderResults();
   </script>
-
 </body>
 </html>
