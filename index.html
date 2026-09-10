@@ -31,7 +31,7 @@
     .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
     .bulk-att-row select { width: 45%; }
 
-    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
+    .nav { display: flex; justify-around: border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
     .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 5px; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
     .tab-content { display: none; padding-bottom: 70px; }
@@ -46,7 +46,7 @@
 <body>
 
   <h1>Carbrain FC Sky Blues</h1>
-  <div class="status-bar"><span>Synced</span> · Everyone sees this data</div>
+  <div class="status-bar"><span id="db-status">Connecting...</span> · Everyone sees this data</div>
 
   <div class="admin-panel">
     <span id="mode-text">Mode: Spectator (Read Only)</span>
@@ -171,6 +171,11 @@
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
+    // Check Firebase connection
+    db.ref('.info/connected').on('value', snap => {
+      document.getElementById('db-status').innerText = snap.val() === true ? "Synced" : "Disconnected";
+    });
+
     let isAdmin = false;
     let currentMatchScorers = [];
     let playerListGlobal = [];
@@ -200,6 +205,7 @@
 
       renderPlayers();
       renderFixtures();
+      renderAttendanceHistory();
     }
 
     function switchTab(tabId, btn) {
@@ -269,6 +275,8 @@
         });
       });
       renderPlayers();
+    }, error => {
+      alert("Firebase Read Error: " + error.message);
     });
 
     function addPlayer() {
@@ -289,7 +297,9 @@
 
     function deletePlayer(id) {
       if (confirm('Delete this player?')) {
-        db.ref('players/' + id).remove();
+        db.ref('players/' + id).remove(err => {
+          if (err) alert("Delete Error: " + err.message);
+        });
       }
     }
 
@@ -314,21 +324,36 @@
       });
 
       db.ref('attendance_sessions').push({ date, type, records }, (err) => {
-        if (!err) alert('Attendance session saved successfully!');
+        if (err) {
+          alert('Failed to save attendance: ' + err.message);
+        } else {
+          alert('Attendance session saved successfully!');
+        }
       });
     }
 
-    db.ref('attendance_sessions').on('value', snapshot => {
+    let attendanceSnapshotGlobal = null;
+
+    function deleteAttendanceSession(id) {
+      if (confirm('Are you sure you want to delete this attendance session?')) {
+        db.ref('attendance_sessions/' + id).remove(err => {
+          if (err) alert("Delete Error: " + err.message);
+        });
+      }
+    }
+
+    function renderAttendanceHistory() {
       const history = document.getElementById('attendance-history');
       history.innerHTML = '';
 
-      if (!snapshot.exists()) {
+      if (!attendanceSnapshotGlobal || !attendanceSnapshotGlobal.exists()) {
         history.innerHTML = '<div class="empty-msg">No attendance sessions logged yet.</div>';
         return;
       }
 
-      snapshot.forEach(child => {
+      attendanceSnapshotGlobal.forEach(child => {
         const session = child.val();
+        const sessionId = child.key;
         let recordsHTML = '';
         if (session.records) {
           session.records.forEach(r => {
@@ -344,14 +369,22 @@
           });
         }
 
+        const delBtn = isAdmin ? `<button class="del-btn" onclick="deleteAttendanceSession('${sessionId}')">Delete</button>` : '';
+
         history.innerHTML += `
           <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px; margin-bottom:12px;">
-            <div style="width:100%; border-bottom:1px solid #333; padding-bottom:4px; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center; border-bottom:1px solid #333; padding-bottom:4px; margin-bottom:4px;">
               <span class="date-tag">${formatDate(session.date)} (${session.type})</span>
+              ${delBtn}
             </div>
             <div style="width:100%;">${recordsHTML}</div>
           </div>`;
       });
+    }
+
+    db.ref('attendance_sessions').on('value', snapshot => {
+      attendanceSnapshotGlobal = snapshot;
+      renderAttendanceHistory();
     });
 
     // RESULTS & TOP SCORERS
@@ -375,7 +408,9 @@
       if (!opponent) { alert('Please enter opponent name'); return; }
 
       db.ref('matches').push({ opponent, venue, us, them, date, scorers: currentMatchScorers }, (err) => {
-        if (!err) {
+        if (err) {
+          alert('Failed to save match result: ' + err.message);
+        } else {
           document.getElementById('m-opponent').value = '';
           document.getElementById('m-us').value = '';
           document.getElementById('m-them').value = '';
@@ -479,7 +514,9 @@
       if (!opponent) return;
 
       db.ref('fixtures').push({ opponent, date, played: false }, (err) => {
-        if (!err) {
+        if (err) {
+          alert('Failed to save fixture: ' + err.message);
+        } else {
           document.getElementById('f-opponent').value = '';
           document.getElementById('f-date').value = '';
         }
@@ -487,7 +524,9 @@
     }
 
     function markFixturePlayed(id) {
-      db.ref('fixtures/' + id).update({ played: true });
+      db.ref('fixtures/' + id).update({ played: true }, err => {
+        if (err) alert("Update Error: " + err.message);
+      });
     }
 
     // Set today's date default on date fields
