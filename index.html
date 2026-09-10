@@ -31,7 +31,7 @@
     .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
     .bulk-att-row select { width: 45%; }
 
-    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
+    .nav { display: flex; justify-style: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
     .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 5px; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
     .tab-content { display: none; padding-bottom: 70px; }
@@ -451,18 +451,30 @@
         return;
       }
 
+      // Collect matches into an array to sort by date (most recent first)
+      const matchesList = [];
       matchesSnapshotGlobal.forEach(child => {
         const data = child.val();
-        const matchId = child.key;
-        let scorersText = '';
+        data.id = child.key;
+        matchesList.push(data);
+
         if (data.scorers && data.scorers.length > 0) {
-          scorersText = '⚽ ' + data.scorers.map(s => `${s.player} (${s.goals})`).join(', ');
           data.scorers.forEach(s => {
             scorerTotals[s.player] = (scorerTotals[s.player] || 0) + s.goals;
           });
         }
+      });
 
-        const delBtn = isAdmin ? `<button class="del-btn" onclick="deleteMatch('${matchId}')">Delete</button>` : '';
+      // Sort matches descending by date
+      matchesList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      matchesList.forEach(data => {
+        let scorersText = '';
+        if (data.scorers && data.scorers.length > 0) {
+          scorersText = '⚽ ' + data.scorers.map(s => `${s.player} (${s.goals})`).join(', ');
+        }
+
+        const delBtn = isAdmin ? `<button class="del-btn" onclick="deleteMatch('${data.id}')">Delete</button>` : '';
 
         matchesContainer.innerHTML += `
           <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px;">
