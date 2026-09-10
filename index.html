@@ -28,14 +28,15 @@
     .date-tag { font-size: 11px; color: #5bc0be; font-weight: bold; display: block; margin-bottom: 2px; }
     .badge { background: #5bc0be; color: #1a080c; font-weight: bold; padding: 4px 8px; border-radius: 12px; font-size: 13px; }
     
-    .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
-    .bulk-att-row select { width: 40%; }
+    .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
+    .bulk-att-row select { width: 45%; }
 
     .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
     .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 5px; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
     .tab-content { display: none; padding-bottom: 70px; }
     .tab-content.active { display: block; }
+    .empty-msg { text-align: center; color: #888; font-size: 13px; margin: 10px 0; }
   </style>
 
   <!-- Firebase Scripts -->
@@ -70,7 +71,7 @@
   <!-- ATTENDANCE TAB -->
   <div id="attendance-tab" class="tab-content">
     <div class="card">
-      <h2>Bulk Attendance</h2>
+      <h2>Record Attendance Session</h2>
       <div id="attendance-form" class="form-group" style="display:none;">
         <div class="row">
           <input type="date" id="att-date" style="width: 50%;">
@@ -79,9 +80,16 @@
             <option value="Match Day">Match Day</option>
           </select>
         </div>
-        <div id="bulk-players-container"></div>
+        
+        <div style="margin-top:10px; font-size:13px; color:#5bc0be; font-weight:bold; text-align:left;">
+          Mark Status for Each Player:
+        </div>
+        
+        <div id="bulk-players-container" style="margin-bottom:10px;"></div>
+        
         <button class="action-btn" onclick="submitBulkAttendance()">Save Attendance Session</button>
       </div>
+      <div id="att-read-only-msg" class="empty-msg">Log in with Admin PIN to record session attendance.</div>
     </div>
 
     <div class="card">
@@ -186,6 +194,10 @@
       document.getElementById('attendance-form').style.display = displayStyle;
       document.getElementById('match-form').style.display = displayStyle;
       document.getElementById('fixture-form').style.display = displayStyle;
+      
+      const readMsg = document.getElementById('att-read-only-msg');
+      if (readMsg) readMsg.style.display = isAdmin ? "none" : "block";
+
       renderPlayers();
       renderFixtures();
     }
@@ -203,7 +215,7 @@
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    // SQUAD
+    // SQUAD & ATTENDANCE RENDER
     function renderPlayers() {
       const squadList = document.getElementById('squad-list');
       const bulkContainer = document.getElementById('bulk-players-container');
@@ -213,8 +225,14 @@
       bulkContainer.innerHTML = '';
       scorerSelect.innerHTML = '<option value="">Select Scorer</option>';
 
+      if (playerListGlobal.length === 0) {
+        squadList.innerHTML = '<div class="empty-msg">No players in squad yet. Enter PIN and add players.</div>';
+        bulkContainer.innerHTML = '<div class="empty-msg">No players available for attendance. Add squad players first.</div>';
+        return;
+      }
+
       playerListGlobal.forEach(p => {
-        const numLabel = p.number ? `#${p.number}` : 'N/A';
+        const numLabel = p.number ? `#${p.number}` : '#-';
         const delBtn = isAdmin ? `<button class="del-btn" onclick="deletePlayer('${p.id}')">Delete</button>` : '';
 
         squadList.innerHTML += `
@@ -244,20 +262,29 @@
       playerListGlobal = [];
       snapshot.forEach(child => {
         const p = child.val();
-        p.id = child.key;
-        playerListGlobal.push(p);
+        playerListGlobal.push({
+          id: child.key,
+          name: p.name || 'Unnamed Player',
+          number: p.number || ''
+        });
       });
       renderPlayers();
     });
 
     function addPlayer() {
-      const name = document.getElementById('p-name').value;
-      const number = document.getElementById('p-num').value;
-      if (!name) return;
+      const name = document.getElementById('p-name').value.trim();
+      const number = document.getElementById('p-num').value.trim();
+      if (!name) { alert('Please enter a player name'); return; }
       
-      db.ref('players').push({ name, number });
-      document.getElementById('p-name').value = '';
-      document.getElementById('p-num').value = '';
+      const newRef = db.ref('players').push();
+      newRef.set({ name: name, number: number }, (error) => {
+        if (error) {
+          alert('Failed to save player: ' + error.message);
+        } else {
+          document.getElementById('p-name').value = '';
+          document.getElementById('p-num').value = '';
+        }
+      });
     }
 
     function deletePlayer(id) {
@@ -266,15 +293,19 @@
       }
     }
 
-    // ATTENDANCE
+    // ATTENDANCE LOGGING & HISTORY
     function submitBulkAttendance() {
       const date = document.getElementById('att-date').value;
       const type = document.getElementById('att-type').value;
       if (!date) { alert('Please select a date'); return; }
 
       const selects = document.querySelectorAll('.bulk-status');
-      const records = [];
+      if (selects.length === 0) {
+        alert('No players in squad to mark attendance for!');
+        return;
+      }
 
+      const records = [];
       selects.forEach(sel => {
         records.push({
           player: sel.getAttribute('data-player'),
@@ -282,29 +313,43 @@
         });
       });
 
-      db.ref('attendance_sessions').push({ date, type, records });
-      alert('Attendance saved!');
+      db.ref('attendance_sessions').push({ date, type, records }, (err) => {
+        if (!err) alert('Attendance session saved successfully!');
+      });
     }
 
     db.ref('attendance_sessions').on('value', snapshot => {
       const history = document.getElementById('attendance-history');
       history.innerHTML = '';
 
+      if (!snapshot.exists()) {
+        history.innerHTML = '<div class="empty-msg">No attendance sessions logged yet.</div>';
+        return;
+      }
+
       snapshot.forEach(child => {
         const session = child.val();
         let recordsHTML = '';
         if (session.records) {
           session.records.forEach(r => {
-            recordsHTML += `<span style="font-size:11px; margin-right:8px;">${r.player}: <strong>${r.status}</strong></span> `;
+            let color = '#2e7d32'; // Present
+            if (r.status === 'Absent') color = '#c62828';
+            if (r.status === 'Excused') color = '#f57c00';
+
+            recordsHTML += `
+              <div style="font-size:12px; margin: 3px 0; display:flex; justify-content:space-between; width:100%;">
+                <span>${r.player}</span>
+                <span style="color:${color}; font-weight:bold;">${r.status}</span>
+              </div>`;
           });
         }
 
         history.innerHTML += `
-          <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px;">
-            <div>
+          <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:4px; margin-bottom:12px;">
+            <div style="width:100%; border-bottom:1px solid #333; padding-bottom:4px; margin-bottom:4px;">
               <span class="date-tag">${formatDate(session.date)} (${session.type})</span>
             </div>
-            <div>${recordsHTML}</div>
+            <div style="width:100%;">${recordsHTML}</div>
           </div>`;
       });
     });
@@ -322,21 +367,23 @@
     }
 
     function logMatch() {
-      const opponent = document.getElementById('m-opponent').value;
+      const opponent = document.getElementById('m-opponent').value.trim();
       const venue = document.getElementById('m-venue').value;
       const us = document.getElementById('m-us').value || 0;
       const them = document.getElementById('m-them').value || 0;
       const date = document.getElementById('m-date').value;
-      if (!opponent) return;
+      if (!opponent) { alert('Please enter opponent name'); return; }
 
-      db.ref('matches').push({ opponent, venue, us, them, date, scorers: currentMatchScorers });
-      
-      document.getElementById('m-opponent').value = '';
-      document.getElementById('m-us').value = '';
-      document.getElementById('m-them').value = '';
-      document.getElementById('m-date').value = '';
-      document.getElementById('match-scorers-temp').innerText = '';
-      currentMatchScorers = [];
+      db.ref('matches').push({ opponent, venue, us, them, date, scorers: currentMatchScorers }, (err) => {
+        if (!err) {
+          document.getElementById('m-opponent').value = '';
+          document.getElementById('m-us').value = '';
+          document.getElementById('m-them').value = '';
+          document.getElementById('m-date').value = '';
+          document.getElementById('match-scorers-temp').innerText = '';
+          currentMatchScorers = [];
+        }
+      });
     }
 
     db.ref('matches').on('value', snapshot => {
@@ -346,6 +393,12 @@
       scorersContainer.innerHTML = '';
 
       const scorerTotals = {};
+
+      if (!snapshot.exists()) {
+        matchesContainer.innerHTML = '<div class="empty-msg">No results logged yet.</div>';
+        scorersContainer.innerHTML = '<div class="empty-msg">No goals logged yet.</div>';
+        return;
+      }
 
       snapshot.forEach(child => {
         const data = child.val();
@@ -372,7 +425,7 @@
 
       const sortedScorers = Object.entries(scorerTotals).sort((a, b) => b[1] - a[1]);
       if (sortedScorers.length === 0) {
-        scorersContainer.innerHTML = '<p style="text-align:center; color:#888;">No goals logged yet</p>';
+        scorersContainer.innerHTML = '<div class="empty-msg">No goals logged yet.</div>';
       } else {
         sortedScorers.forEach(([player, goals]) => {
           scorersContainer.innerHTML += `
@@ -389,6 +442,12 @@
     function renderFixtures() {
       const container = document.getElementById('fixtures-list');
       container.innerHTML = '';
+
+      if (rawFixtures.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No upcoming fixtures scheduled.</div>';
+        return;
+      }
+
       rawFixtures.forEach(f => {
         const playedBtn = (isAdmin && !f.played) ? `<button class="small-btn" onclick="markFixturePlayed('${f.id}')">Mark Played</button>` : '';
         const statusBadge = f.played ? `<span class="badge" style="background:#555; color:#fff;">Played</span>` : playedBtn;
@@ -415,18 +474,27 @@
     });
 
     function addFixture() {
-      const opponent = document.getElementById('f-opponent').value;
+      const opponent = document.getElementById('f-opponent').value.trim();
       const date = document.getElementById('f-date').value;
       if (!opponent) return;
 
-      db.ref('fixtures').push({ opponent, date, played: false });
-      document.getElementById('f-opponent').value = '';
-      document.getElementById('f-date').value = '';
+      db.ref('fixtures').push({ opponent, date, played: false }, (err) => {
+        if (!err) {
+          document.getElementById('f-opponent').value = '';
+          document.getElementById('f-date').value = '';
+        }
+      });
     }
 
     function markFixturePlayed(id) {
       db.ref('fixtures/' + id).update({ played: true });
     }
+
+    // Set today's date default on date fields
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (document.getElementById('att-date')) document.getElementById('att-date').value = todayStr;
+    if (document.getElementById('m-date')) document.getElementById('m-date').value = todayStr;
+    if (document.getElementById('f-date')) document.getElementById('f-date').value = todayStr;
   </script>
 </body>
 </html>
