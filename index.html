@@ -31,8 +31,8 @@
     .bulk-att-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
     .bulk-att-row select { width: 45%; }
 
-    .nav { display: flex; justify-style: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; }
-    .nav button { background: none; border: none; color: #888; font-size: 12px; cursor: pointer; padding: 8px 5px; }
+    .nav { display: flex; justify-content: space-around; border-top: 1px solid #333; padding-top: 10px; position: fixed; bottom: 0; left: 0; right: 0; background: #1a080c; max-width: 500px; margin: 0 auto; overflow-x: auto; }
+    .nav button { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 8px 4px; white-space: nowrap; }
     .nav button.active { color: #5bc0be; font-weight: bold; border-bottom: 2px solid #5bc0be; }
     .tab-content { display: none; padding-bottom: 70px; }
     .tab-content.active { display: block; }
@@ -154,6 +154,36 @@
     </div>
   </div>
 
+  <!-- POTW TAB -->
+  <div id="potw-tab" class="tab-content">
+    <div class="card">
+      <h2>Player of the Week</h2>
+      <div id="potw-form" class="form-group" style="display:none;">
+        <input type="date" id="potw-date">
+        <select id="potw-player">
+          <option value="">Select Player</option>
+        </select>
+        <button class="action-btn" onclick="addAward('potw')">Save Player of the Week</button>
+      </div>
+      <div id="potw-list"></div>
+    </div>
+  </div>
+
+  <!-- PPOTW TAB -->
+  <div id="ppotw-tab" class="tab-content">
+    <div class="card">
+      <h2>Parents' Player of the Week</h2>
+      <div id="ppotw-form" class="form-group" style="display:none;">
+        <input type="date" id="ppotw-date">
+        <select id="ppotw-player">
+          <option value="">Select Player</option>
+        </select>
+        <button class="action-btn" onclick="addAward('ppotw')">Save Parents' Player of the Week</button>
+      </div>
+      <div id="ppotw-list"></div>
+    </div>
+  </div>
+
   <!-- NAV BAR -->
   <div class="nav">
     <button class="active" onclick="switchTab('squad-tab', this)">Squad</button>
@@ -161,6 +191,8 @@
     <button onclick="switchTab('results-tab', this)">Results</button>
     <button onclick="switchTab('fixtures-tab', this)">Fixtures</button>
     <button onclick="switchTab('scorers-tab', this)">Scorers</button>
+    <button onclick="switchTab('potw-tab', this)">POTW</button>
+    <button onclick="switchTab('ppotw-tab', this)">PPOTW</button>
   </div>
 
   <script>
@@ -197,6 +229,8 @@
       document.getElementById('squad-form').style.display = displayStyle;
       document.getElementById('match-form').style.display = displayStyle;
       document.getElementById('fixture-form').style.display = displayStyle;
+      document.getElementById('potw-form').style.display = displayStyle;
+      document.getElementById('ppotw-form').style.display = displayStyle;
       
       // Toggle Attendance tab visibility for Admin only
       const attBtn = document.getElementById('att-nav-btn');
@@ -212,6 +246,8 @@
       renderFixtures();
       renderAttendanceHistory();
       renderMatches();
+      renderAwards('potw');
+      renderAwards('ppotw');
     }
 
     function switchTab(tabId, btn) {
@@ -232,10 +268,14 @@
       const squadList = document.getElementById('squad-list');
       const bulkContainer = document.getElementById('bulk-players-container');
       const scorerSelect = document.getElementById('m-scorer');
+      const potwSelect = document.getElementById('potw-player');
+      const ppotwSelect = document.getElementById('ppotw-player');
 
       squadList.innerHTML = '';
       bulkContainer.innerHTML = '';
       scorerSelect.innerHTML = '<option value="">Select Scorer</option>';
+      potwSelect.innerHTML = '<option value="">Select Player</option>';
+      ppotwSelect.innerHTML = '<option value="">Select Player</option>';
 
       if (playerListGlobal.length === 0) {
         squadList.innerHTML = '<div class="empty-msg">No players in squad yet. Enter PIN and add players.</div>';
@@ -266,7 +306,10 @@
             </select>
           </div>`;
 
-        scorerSelect.innerHTML += `<option value="${p.name}">${numLabel} ${p.name}</option>`;
+        const optionHTML = `<option value="${p.name}">${numLabel} ${p.name}</option>`;
+        scorerSelect.innerHTML += optionHTML;
+        potwSelect.innerHTML += optionHTML;
+        ppotwSelect.innerHTML += optionHTML;
       });
     }
 
@@ -568,11 +611,86 @@
       });
     }
 
+    // POTW & PPOTW LOGIC
+    let potwSnapshotGlobal = null;
+    let ppotwSnapshotGlobal = null;
+
+    function addAward(type) {
+      const date = document.getElementById(`${type}-date`).value;
+      const player = document.getElementById(`${type}-player`).value;
+      if (!date || !player) {
+        alert('Please select both a date and a player');
+        return;
+      }
+
+      db.ref(type).push({ date, player }, (err) => {
+        if (err) {
+          alert('Failed to save award: ' + err.message);
+        } else {
+          document.getElementById(`${type}-player`).value = '';
+        }
+      });
+    }
+
+    function deleteAward(type, id) {
+      if (confirm('Are you sure you want to delete this award record?')) {
+        db.ref(`${type}/${id}`).remove(err => {
+          if (err) alert("Delete Error: " + err.message);
+        });
+      }
+    }
+
+    function renderAwards(type) {
+      const listContainer = document.getElementById(`${type}-list`);
+      const snapshot = type === 'potw' ? potwSnapshotGlobal : ppotwSnapshotGlobal;
+      listContainer.innerHTML = '';
+
+      if (!snapshot || !snapshot.exists()) {
+        listContainer.innerHTML = '<div class="empty-msg">No awards recorded yet.</div>';
+        return;
+      }
+
+      const awardsList = [];
+      snapshot.forEach(child => {
+        const data = child.val();
+        data.id = child.key;
+        awardsList.push(data);
+      });
+
+      // Sort descending by match date (most recent first)
+      awardsList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      awardsList.forEach(item => {
+        const delBtn = isAdmin ? `<button class="del-btn" onclick="deleteAward('${type}', '${item.id}')">Delete</button>` : '';
+
+        listContainer.innerHTML += `
+          <div class="list-item">
+            <div>
+              <span class="date-tag">${formatDate(item.date)}</span>
+              <strong>${item.player}</strong>
+            </div>
+            ${delBtn}
+          </div>`;
+      });
+    }
+
+    db.ref('potw').on('value', snapshot => {
+      potwSnapshotGlobal = snapshot;
+      renderAwards('potw');
+    });
+
+    db.ref('ppotw').on('value', snapshot => {
+      ppotwSnapshotGlobal = snapshot;
+      renderAwards('ppotw');
+    });
+
     // Set today's date default on date fields
     const todayStr = new Date().toISOString().split('T')[0];
     if (document.getElementById('att-date')) document.getElementById('att-date').value = todayStr;
     if (document.getElementById('m-date')) document.getElementById('m-date').value = todayStr;
     if (document.getElementById('f-date')) document.getElementById('f-date').value = todayStr;
+    if (document.getElementById('potw-date')) document.getElementById('potw-date').value = todayStr;
+    if (document.getElementById('ppotw-date')) document.getElementById('ppotw-date').value = todayStr;
   </script>
 </body>
 </html>
